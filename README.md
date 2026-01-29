@@ -97,6 +97,18 @@ spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
 ```
 
+### Environment (.env)
+This project supports using a `.env` file for production configuration. For security, do NOT commit your real `.env` file — instead copy `.env.example` to `.env` and fill in values.
+
+Key variables (examples are in `.env.example`):
+- `SPRING_PROFILES_ACTIVE=prod` — activate profile for production
+- `SPRING_DATASOURCE_URL` — JDBC DB URL (e.g. `jdbc:postgresql://db.your-supabase.co:5432/postgres?sslmode=require`)
+- `SPRING_DATASOURCE_USERNAME` and `SPRING_DATASOURCE_PASSWORD` — DB credentials
+- `JWT_SECRET` — secret key for JWT tokens
+- `CORS_ORIGINS` — comma-separated allowed origins
+
+When deploying to Render or similar platforms, set these environment variables in the service dashboard or use the `.env` file locally.
+
 ### 3. Build & Run
 ```bash
 
