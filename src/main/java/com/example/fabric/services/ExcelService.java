@@ -42,15 +42,6 @@ public class ExcelService {
     private final ProductRepository productRepository;
     private final PieceService pieceService;
 
-    /**
-     * Process Excel file and upload meters
-     * Expected Excel format:
-     * Column A: Worker Code (string) - e.g., "W001", "JOHN"
-     * Column B: Machine Code (string) - e.g., "M001", "LOOM1"
-     * Column C: Production Date (YYYY-MM-DD or DD/MM/YYYY)
-     * Column D: Meters Produced (number)
-     * Column E: Product Code (optional - string) - e.g., "P001", "BLUE_FABRIC"
-     */
     public ExcelMeterUploadResult processExcelFile(MultipartFile file) {
         ExcelMeterUploadResult result = new ExcelMeterUploadResult();
         result.setErrors(new ArrayList<>());
@@ -101,13 +92,6 @@ public class ExcelService {
         return result;
     }
 
-    /**
-     * Process Excel file and upload pieces
-     * Expected Excel format:
-     * Column A: Product Code (string) - e.g., "P001", "BLUE_FABRIC"
-     * Column B: Export Date (YYYY-MM-DD or DD/MM/YYYY)
-     * Column C: Meters (number)
-     */
     public ExcelMeterUploadResult processPieceExcelFile(MultipartFile file) {
         ExcelMeterUploadResult result = new ExcelMeterUploadResult();
         result.setErrors(new ArrayList<>());
@@ -295,24 +279,6 @@ public class ExcelService {
             case NUMERIC:
                 // Convert number to string (useful for codes that might be entered as numbers)
                 return String.valueOf((long) cell.getNumericCellValue());
-            default:
-                return null;
-        }
-    }
-
-    private Long getLongFromCell(Cell cell) {
-        if (cell == null)
-            return null;
-
-        switch (cell.getCellType()) {
-            case NUMERIC:
-                return (long) cell.getNumericCellValue();
-            case STRING:
-                try {
-                    return Long.parseLong(cell.getStringCellValue().trim());
-                } catch (NumberFormatException e) {
-                    return null;
-                }
             default:
                 return null;
         }

@@ -1,6 +1,5 @@
 package com.example.fabric.services;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -8,6 +7,7 @@ import org.springframework.stereotype.Service;
 import com.example.fabric.dto.AddWorkerDto;
 import com.example.fabric.dto.UpdateWorkerDto;
 import com.example.fabric.model.Worker;
+import com.example.fabric.projection.WorkerListView;
 import com.example.fabric.repository.WorkerRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -29,18 +29,18 @@ public class WorkerService {
 
     }
 
-    public List<Worker> getAllWorkers() {
-        return workerRepository.findAll();
+    public List<WorkerListView> getAllWorkers() {
+        return workerRepository.findAllWorkersView();
     }
 
-    public List<Worker> getWorkerById(Long id) {
-        return workerRepository.findById(id).map(Collections::singletonList).orElse(Collections.emptyList());
+    public List<WorkerListView> getWorkerById(Long id) {
+        return workerRepository.findWorkerByIdView(id);
     }
 
     public Worker updateWorker(UpdateWorkerDto dto) {
         Worker worker = workerRepository.findById(dto.getId())
                 .orElseThrow(() -> new RuntimeException("Worker not found with id: " + dto.getId()));
-        
+
         // Check if worker code is being changed and if it's unique
         if (dto.getWorkerCode() != null && !dto.getWorkerCode().equals(worker.getWorkerCode())) {
             Worker existingWorkerWithCode = workerRepository.findByWorkerCode(dto.getWorkerCode());
@@ -49,15 +49,15 @@ public class WorkerService {
             }
             worker.setWorkerCode(dto.getWorkerCode());
         }
-        
+
         if (dto.getWorkerName() != null) {
             worker.setWorkerName(dto.getWorkerName());
         }
-        
+
         if (dto.getMobile() != null) {
             worker.setMobile(dto.getMobile());
         }
-        
+
         return workerRepository.save(worker);
     }
 
@@ -65,16 +65,17 @@ public class WorkerService {
         // Validate worker exists
         Worker worker = workerRepository.findById(workerId)
                 .orElseThrow(() -> new RuntimeException("Worker not found with id: " + workerId));
-        
+
         java.time.LocalDate start = null;
         java.time.LocalDate end = null;
-        
+
         // Calculate date range based on period
         java.time.LocalDate now = java.time.LocalDate.now();
-        
+
         switch (period.toLowerCase()) {
             case "weekly":
-                // Use provided dates if available (for week navigation), otherwise calculate current week
+                // Use provided dates if available (for week navigation), otherwise calculate
+                // current week
                 if (startDate != null && endDate != null) {
                     start = java.time.LocalDate.parse(startDate);
                     end = java.time.LocalDate.parse(endDate);
@@ -87,7 +88,8 @@ public class WorkerService {
                 }
                 break;
             case "monthly":
-                // For monthly, we'll use the provided startDate and endDate which will contain month/year info
+                // For monthly, we'll use the provided startDate and endDate which will contain
+                // month/year info
                 if (startDate != null && endDate != null) {
                     start = java.time.LocalDate.parse(startDate);
                     end = java.time.LocalDate.parse(endDate);
@@ -112,10 +114,10 @@ public class WorkerService {
             default:
                 throw new RuntimeException("Invalid period. Use: weekly, monthly, yearly, or custom");
         }
-        
+
         // Get analytics data using MeterService with both start and end dates
         java.util.Map<String, Object> analytics = meterService.getTotalMetersAndCost(workerId, start, end);
-        
+
         // Add worker information and period details
         java.util.Map<String, Object> result = new java.util.HashMap<>();
         result.put("worker", worker);
@@ -123,7 +125,7 @@ public class WorkerService {
         result.put("startDate", start.toString());
         result.put("endDate", end.toString());
         result.put("analytics", analytics);
-        
+
         return result;
     }
 }

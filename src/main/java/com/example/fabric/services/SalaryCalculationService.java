@@ -59,7 +59,7 @@ public class SalaryCalculationService {
      */
     private List<SalaryCalculationDto> calculateSalaryForPeriod(LocalDate startDate, LocalDate endDate, Integer weeks) {
         List<ShiftAssignmentDto> assignments = getAssignmentsForSalaryCalculation(endDate, weeks);
-        
+
         // Group by worker
         Map<Long, List<ShiftAssignmentDto>> workerAssignments = assignments.stream()
                 .collect(Collectors.groupingBy(ShiftAssignmentDto::getWorkerId));
@@ -70,15 +70,10 @@ public class SalaryCalculationService {
             Long workerId = entry.getKey();
             List<ShiftAssignmentDto> workerAssignmentList = entry.getValue();
 
-            SalaryCalculationDto salaryCalc = calculateWorkerSalary(workerId, workerAssignmentList, startDate, endDate, weeks);
+            SalaryCalculationDto salaryCalc = calculateWorkerSalary(workerId, workerAssignmentList, startDate, endDate,
+                    weeks);
             salaryCalculations.add(salaryCalc);
         }
-
-        // Mark assignments as salary calculated (if needed in future)
-        // List<Long> assignmentIds = assignments.stream()
-        //         .map(dto -> dto.getWorkerId()) // This should be assignment ID, but we need to modify the DTO
-        //         .collect(Collectors.toList());
-        
         return salaryCalculations;
     }
 
@@ -87,14 +82,14 @@ public class SalaryCalculationService {
      */
     public List<ShiftAssignmentDto> getAssignmentsForSalaryCalculation(LocalDate endDate, Integer weeks) {
         LocalDate startDate = endDate.minusDays((weeks * 7) - 1);
-        
+
         List<WorkerShiftAssignment> assignments = assignmentRepository.findAll()
                 .stream()
                 .filter(assignment -> assignment.getIsActive())
-                .filter(assignment -> !(endDate.isBefore(assignment.getPeriodStartDate()) || 
-                                      startDate.isAfter(assignment.getPeriodEndDate())))
+                .filter(assignment -> !(endDate.isBefore(assignment.getPeriodStartDate()) ||
+                        startDate.isAfter(assignment.getPeriodEndDate())))
                 .collect(Collectors.toList());
-        
+
         return assignments.stream()
                 .map(assignment -> convertToDto(assignment))
                 .collect(Collectors.toList());
@@ -121,18 +116,18 @@ public class SalaryCalculationService {
     /**
      * Calculate salary for a specific worker
      */
-    private SalaryCalculationDto calculateWorkerSalary(Long workerId, List<ShiftAssignmentDto> assignments, 
-                                                      LocalDate startDate, LocalDate endDate, Integer weeks) {
-        
+    private SalaryCalculationDto calculateWorkerSalary(Long workerId, List<ShiftAssignmentDto> assignments,
+            LocalDate startDate, LocalDate endDate, Integer weeks) {
+
         // Get all meters for this worker in the period
         List<Meter> meters = meterRepository.findByWorkerIdAndProductionDateBetween(workerId, startDate, endDate);
-        
+
         // Group meters by machine and product
         Map<String, Map<Long, BigDecimal>> machineProductMeters = new HashMap<>();
         for (Meter meter : meters) {
             String machineKey = meter.getMachine().getId().toString();
             Long productId = meter.getProduct().getId();
-            
+
             machineProductMeters.computeIfAbsent(machineKey, k -> new HashMap<>())
                     .merge(productId, meter.getMeters(), BigDecimal::add);
         }
@@ -145,34 +140,35 @@ public class SalaryCalculationService {
 
         for (Map.Entry<String, Map<Long, BigDecimal>> machineEntry : machineProductMeters.entrySet()) {
             Long machineId = Long.valueOf(machineEntry.getKey());
-            
+
             for (Map.Entry<Long, BigDecimal> productEntry : machineEntry.getValue().entrySet()) {
                 Long productId = productEntry.getKey();
                 BigDecimal totalMeters = productEntry.getValue();
-                
+
                 Product product = productRepository.findById(productId).orElse(null);
-                
+
                 // Calculate adjusted meters after point decrease
                 BigDecimal adjustedMeters = totalMeters;
                 BigDecimal pointDecrease = BigDecimal.ZERO;
-                
+
                 if (product != null && product.getPointDecrease() != null) {
                     pointDecrease = product.getPointDecrease();
                     BigDecimal decreaseAmount = totalMeters.multiply(pointDecrease)
                             .divide(BigDecimal.valueOf(100), 1, RoundingMode.HALF_UP);
                     adjustedMeters = totalMeters.subtract(decreaseAmount);
                 }
-                
+
                 // Round adjusted meters to 1 decimal place
                 adjustedMeters = adjustedMeters.setScale(1, RoundingMode.HALF_UP);
-                
+
                 // Calculate cost
-                BigDecimal totalCost = product != null ? 
-                        adjustedMeters.multiply(BigDecimal.valueOf(product.getCostout())) : BigDecimal.ZERO;
-                
+                BigDecimal totalCost = product != null
+                        ? adjustedMeters.multiply(BigDecimal.valueOf(product.getCostout()))
+                        : BigDecimal.ZERO;
+
                 // Round total cost to 1 decimal place
                 totalCost = totalCost.setScale(1, RoundingMode.HALF_UP);
-                
+
                 // Create machine production DTO
                 MachineProductionDto machineProduction = new MachineProductionDto();
                 machineProduction.setMachineId(machineId);
@@ -183,9 +179,9 @@ public class SalaryCalculationService {
                 machineProduction.setAdjustedMeters(adjustedMeters);
                 machineProduction.setCost(totalCost);
                 machineProduction.setPointDecrease(pointDecrease.setScale(1, RoundingMode.HALF_UP));
-                
+
                 machineProductions.add(machineProduction);
-                
+
                 // Add to grand totals
                 grandTotalMeters = grandTotalMeters.add(totalMeters);
                 grandTotalAdjustedMeters = grandTotalAdjustedMeters.add(adjustedMeters);
@@ -225,7 +221,7 @@ public class SalaryCalculationService {
 
     public Map<String, Object> getTotalMetersAndCost(Long workerId, LocalDate startDate, LocalDate endDate) {
         List<Meter> meters = meterRepository.findByWorkerIdAndProductionDateBetween(workerId, startDate, endDate);
-        
+
         Map<Long, Map<Long, BigDecimal>> machineProductMeters = new HashMap<>();
         for (Meter meter : meters) {
             Long machineId = meter.getMachine().getId();
@@ -233,38 +229,40 @@ public class SalaryCalculationService {
             machineProductMeters.computeIfAbsent(machineId, k -> new HashMap<>())
                     .merge(productId, meter.getMeters(), BigDecimal::add);
         }
-        
+
         List<Map<String, Object>> result = new ArrayList<>();
         BigDecimal grandTotalMeters = BigDecimal.ZERO;
         BigDecimal grandTotalAdjustedMeters = BigDecimal.ZERO;
         BigDecimal grandTotalCost = BigDecimal.ZERO;
-        
+
         for (Map.Entry<Long, Map<Long, BigDecimal>> machineEntry : machineProductMeters.entrySet()) {
             Long machineId = machineEntry.getKey();
             for (Map.Entry<Long, BigDecimal> productEntry : machineEntry.getValue().entrySet()) {
                 Long productId = productEntry.getKey();
                 BigDecimal totalMeters = productEntry.getValue();
                 Product product = productRepository.findById(productId).orElse(null);
-                
+
                 // Calculate adjusted meters after applying point decrease
                 BigDecimal adjustedMeters = totalMeters;
                 BigDecimal pointDecrease = BigDecimal.ZERO;
-                
+
                 if (product != null && product.getPointDecrease() != null) {
                     pointDecrease = product.getPointDecrease();
                     // Calculate decrease amount: totalMeters * (pointDecrease / 100)
-                    BigDecimal decreaseAmount = totalMeters.multiply(pointDecrease).divide(BigDecimal.valueOf(100), 1, RoundingMode.HALF_UP);
+                    BigDecimal decreaseAmount = totalMeters.multiply(pointDecrease).divide(BigDecimal.valueOf(100), 1,
+                            RoundingMode.HALF_UP);
                     adjustedMeters = totalMeters.subtract(decreaseAmount);
                 }
-                
+
                 // Calculate cost based on adjusted meters
-                BigDecimal totalCost = product != null ? adjustedMeters.multiply(BigDecimal.valueOf(product.getCostout()))
+                BigDecimal totalCost = product != null
+                        ? adjustedMeters.multiply(BigDecimal.valueOf(product.getCostout()))
                         : BigDecimal.ZERO;
-                
+
                 grandTotalMeters = grandTotalMeters.add(totalMeters);
                 grandTotalAdjustedMeters = grandTotalAdjustedMeters.add(adjustedMeters);
                 grandTotalCost = grandTotalCost.add(totalCost);
-                
+
                 Map<String, Object> item = new HashMap<>();
                 item.put("machine_id", machineId.toString());
                 item.put("product_id", productId.toString());
@@ -274,7 +272,7 @@ public class SalaryCalculationService {
                 result.add(item);
             }
         }
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("data", result);
         response.put("grandTotalMeters", grandTotalAdjustedMeters.setScale(1, RoundingMode.HALF_UP));

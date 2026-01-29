@@ -18,6 +18,7 @@ import com.example.fabric.dto.ProductMachineDto;
 import com.example.fabric.model.Machine;
 import com.example.fabric.model.Meter;
 import com.example.fabric.model.StoredFile;
+import com.example.fabric.projection.MachineListView;
 import com.example.fabric.services.ExcelService;
 import com.example.fabric.services.FileStorageService;
 import com.example.fabric.services.MachineService;
@@ -41,7 +42,7 @@ public class MachineController {
     @GetMapping("/getMachine")
     public ResponseEntity<?> getMachine(@RequestParam(value = "id", required = false) Long id) {
         try {
-            List<Machine> machines = (id != null) ? machineService.getMachineById(id)
+            List<MachineListView> machines = (id != null) ? machineService.getMachineById(id)
                     : machineService.getAllMachines();
             return ResponseUtil.createSuccessResponse(machines);
         } catch (Exception ex) {
@@ -58,7 +59,7 @@ public class MachineController {
             @RequestParam(required = false) String endDate) {
         try {
             List<Meter> meters;
-            
+
             if (startDate != null && endDate != null) {
                 // Get meters for specific date range
                 LocalDate start = LocalDate.parse(startDate);
@@ -72,7 +73,7 @@ public class MachineController {
                 // Get all meters for the machine (current behavior)
                 meters = meterService.getMetersByMachineId(machineId);
             }
-            
+
             return ResponseUtil.createSuccessResponse(meters);
         } catch (Exception ex) {
             return ResponseUtil.createErrorResponse(
@@ -86,16 +87,16 @@ public class MachineController {
         try {
             // Get running products for this machine using the new ProductMachineService
             List<ProductMachineDto> runningProducts = productMachineService.getProductMachinesByStatus(1)
-                .stream()
-                .filter(pm -> pm.getMachineId().equals(machineId))
-                .toList();
-            
+                    .stream()
+                    .filter(pm -> pm.getMachineId().equals(machineId))
+                    .toList();
+
             if (runningProducts.isEmpty()) {
                 return ResponseUtil.createErrorResponse(
                         HttpStatus.NOT_FOUND.value(),
                         "No running product found for this machine");
             }
-            
+
             // Return the first running product (there should typically be only one)
             return ResponseUtil.createSuccessResponse(runningProducts.get(0));
         } catch (Exception ex) {
@@ -110,10 +111,10 @@ public class MachineController {
         try {
             // Get all products for this machine using the new ProductMachineService
             List<ProductMachineDto> machineProducts = productMachineService.getAllProductMachines()
-                .stream()
-                .filter(pm -> pm.getMachineId().equals(machineId))
-                .toList();
-            
+                    .stream()
+                    .filter(pm -> pm.getMachineId().equals(machineId))
+                    .toList();
+
             return ResponseUtil.createSuccessResponse(machineProducts);
         } catch (Exception ex) {
             return ResponseUtil.createErrorResponse(
@@ -154,17 +155,17 @@ public class MachineController {
 
             // Process the Excel file
             ExcelMeterUploadResult result = excelService.processExcelFile(file);
-            
+
             // Add file storage info to result
             result.setStoredFileId(storedFile.getId());
             result.setStoredFileName(storedFile.getFileName());
-            
+
             if (result.getFailedRows() == 0) {
                 return ResponseUtil.createSuccessResponse(result);
             } else {
                 // Some rows failed, but some might have succeeded
                 return ResponseEntity.status(207) // 207 Multi-Status
-                    .body(ResponseUtil.createSuccessResponse(result));
+                        .body(ResponseUtil.createSuccessResponse(result));
             }
 
         } catch (Exception ex) {

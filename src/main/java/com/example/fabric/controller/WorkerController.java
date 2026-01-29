@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.fabric.dto.AddWorkerDto;
 import com.example.fabric.dto.UpdateWorkerDto;
 import com.example.fabric.model.Worker;
+import com.example.fabric.projection.WorkerListView;
 import com.example.fabric.repository.WorkerRepository;
 import com.example.fabric.services.WorkerService;
 import com.example.fabric.util.ResponseUtil;
@@ -48,9 +49,17 @@ public class WorkerController {
     }
 
     @GetMapping("/getWorker")
-    public List<Worker> getWorker(@RequestParam(value = "id", required = false) Long id) {
-        return (id != null) ? workerService.getWorkerById(id)
-                : workerService.getAllWorkers();
+    public ResponseEntity<?> getWorker(@RequestParam(value = "id", required = false) Long id) {
+        try {
+            List<WorkerListView> workers = (id != null) ? workerService.getWorkerById(id)
+                    : workerService.getAllWorkers();
+
+            return ResponseUtil.createSuccessResponse(workers);
+        } catch (Exception e) {
+            return ResponseUtil.createErrorResponse(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Error fetching workers: " + e.getMessage());
+        }
     }
 
     @PostMapping("/updateWorker")
@@ -66,10 +75,10 @@ public class WorkerController {
     }
 
     @GetMapping("/getWorkerAnalytics")
-    public ResponseEntity<?> getWorkerAnalytics(@RequestParam Long workerId, 
-                                               @RequestParam String period,
-                                               @RequestParam(required = false) String startDate,
-                                               @RequestParam(required = false) String endDate) {
+    public ResponseEntity<?> getWorkerAnalytics(@RequestParam Long workerId,
+            @RequestParam String period,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
         try {
             Object analytics = workerService.getWorkerAnalytics(workerId, period, startDate, endDate);
             return ResponseUtil.createSuccessResponse(analytics);

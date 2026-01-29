@@ -55,6 +55,7 @@ public class UserService {
 
         return new LoginResponseDto(
                 user.getUsername(),
+                user.getRoleName(),
                 token,
                 user.getTokenExpiry());
     }

@@ -37,8 +37,17 @@ public class SecurityConfig {
                                 "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/swagger-config")
                         .permitAll()
                         .requestMatchers("/all/**").authenticated()
+                        // Option 1: Only strict role separation (original)
                         .requestMatchers("/users/**").hasRole("USER")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                        // Option 2: Allow Admin to access User endpoints
+                        // .requestMatchers("/users/**").hasAnyRole("USER", "ADMIN")
+                        // .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                        // Option 3: Allow both to access all (uncomment to use)
+                        // .requestMatchers("/users/**", "/admin/**").authenticated()
+
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))

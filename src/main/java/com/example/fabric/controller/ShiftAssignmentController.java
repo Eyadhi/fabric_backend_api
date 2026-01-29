@@ -20,12 +20,12 @@ import com.example.fabric.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/user/shifts")
+@RequestMapping("/users/shifts")
 @RequiredArgsConstructor
 public class ShiftAssignmentController {
 
     private final ShiftAssignmentService shiftAssignmentService;
-    
+
     /**
      * Create flexible shift assignment (weekly or custom range)
      */
@@ -87,8 +87,21 @@ public class ShiftAssignmentController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         try {
-            List<ShiftAssignmentDto> assignments = 
-                    shiftAssignmentService.getWorkerAssignments(workerId, startDate, endDate);
+            List<ShiftAssignmentDto> assignments = shiftAssignmentService.getWorkerAssignments(workerId, startDate,
+                    endDate);
+            return ResponseUtil.createSuccessResponse(assignments);
+        } catch (Exception e) {
+            return ResponseUtil.createErrorResponse(500, "Error fetching assignments: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/all-worker-assignments")
+    public ResponseEntity<?> getAllWorkerAssignments(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        try {
+            List<ShiftAssignmentDto> assignments = shiftAssignmentService.getAllWorkerAssignments(startDate,
+                    endDate);
             return ResponseUtil.createSuccessResponse(assignments);
         } catch (Exception e) {
             return ResponseUtil.createErrorResponse(500, "Error fetching assignments: " + e.getMessage());

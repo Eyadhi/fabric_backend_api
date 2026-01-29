@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginResponseDto {
     private String username;
+    private String role;
     private String token;
     private LocalDateTime tokenExpiry;
 }

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +31,15 @@ public class AdminController {
     private final PasswordEncoder passwordEncoder;
     private final UserService userService;
 
+    /**
+     * Register a new user
+     * 
+     * @PreAuthorize("hasRole('ADMIN')") - Only admins can register
+     * @PreAuthorize("hasAnyRole('ADMIN', 'USER')") - Both admin and user can
+     * register
+     * @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')") - Multiple roles
+     */
+    @PreAuthorize("hasRole('ADMIN')") // Only ADMIN
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<?>> register(@RequestBody RegisterDto registerRequest) {
         try {
@@ -51,7 +61,8 @@ public class AdminController {
             user.setUsername(registerRequest.getUsername());
             user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
             user.setMobileNo(registerRequest.getMobile());
-            user.setRoleId(registerRequest.getRoleId() != null ? registerRequest.getRoleId() : 2); // Default to user role
+            user.setRoleId(registerRequest.getRoleId() != null ? registerRequest.getRoleId() : 2); // Default to user
+                                                                                                   // role
 
             userRepository.save(user);
 

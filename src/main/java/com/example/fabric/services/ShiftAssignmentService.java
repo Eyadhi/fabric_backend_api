@@ -37,10 +37,10 @@ public class ShiftAssignmentService {
         // Validate entities
         Worker worker = workerRepository.findById(dto.getWorkerId())
                 .orElseThrow(() -> new RuntimeException("Worker not found with ID: " + dto.getWorkerId()));
-        
+
         Machine machine = machineRepository.findById(dto.getMachineId())
                 .orElseThrow(() -> new RuntimeException("Machine not found with ID: " + dto.getMachineId()));
-        
+
         Shift shift = shiftRepository.findById(dto.getShiftId())
                 .orElseThrow(() -> new RuntimeException("Shift not found with ID: " + dto.getShiftId()));
 
@@ -51,7 +51,8 @@ public class ShiftAssignmentService {
         if (dto.getAssignmentType() == 1) {
             // For weekly assignments, ensure period starts on Saturday
             periodStart = getSaturday(periodStart);
-            periodEnd = periodStart.plusDays(6);;
+            periodEnd = periodStart.plusDays(6);
+            ;
         }
 
         // Check for overlapping assignments
@@ -86,14 +87,15 @@ public class ShiftAssignmentService {
     /**
      * Check for overlapping assignments
      */
-    private boolean hasOverlappingAssignment(Long workerId, Long machineId, LocalDate periodStartDate, LocalDate periodEndDate) {
+    private boolean hasOverlappingAssignment(Long workerId, Long machineId, LocalDate periodStartDate,
+            LocalDate periodEndDate) {
         List<WorkerShiftAssignment> overlapping = assignmentRepository.findByWorkerIdAndIsActive(workerId, true)
                 .stream()
                 .filter(assignment -> assignment.getMachine().getId().equals(machineId))
-                .filter(assignment -> !(periodEndDate.isBefore(assignment.getPeriodStartDate()) || 
-                                      periodStartDate.isAfter(assignment.getPeriodEndDate())))
+                .filter(assignment -> !(periodEndDate.isBefore(assignment.getPeriodStartDate()) ||
+                        periodStartDate.isAfter(assignment.getPeriodEndDate())))
                 .collect(Collectors.toList());
-        
+
         return !overlapping.isEmpty();
     }
 
@@ -102,14 +104,14 @@ public class ShiftAssignmentService {
      */
     public List<ShiftAssignmentDto> getAssignmentsForSalaryCalculation(LocalDate endDate, Integer weeks) {
         LocalDate startDate = endDate.minusDays((weeks * 7) - 1);
-        
+
         List<WorkerShiftAssignment> assignments = assignmentRepository.findAll()
                 .stream()
                 .filter(assignment -> assignment.getIsActive())
-                .filter(assignment -> !(endDate.isBefore(assignment.getPeriodStartDate()) || 
-                                      startDate.isAfter(assignment.getPeriodEndDate())))
+                .filter(assignment -> !(endDate.isBefore(assignment.getPeriodStartDate()) ||
+                        startDate.isAfter(assignment.getPeriodEndDate())))
                 .collect(Collectors.toList());
-        
+
         return assignments.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -136,8 +138,8 @@ public class ShiftAssignmentService {
     /**
      * Create weekly assignment (Saturday to Friday)
      */
-    public WorkerShiftAssignment createWeeklyAssignment(Long workerId, Long machineId, Long shiftId, 
-                                                       LocalDate weekStartDate, Integer calculationWeeks) {
+    public WorkerShiftAssignment createWeeklyAssignment(Long workerId, Long machineId, Long shiftId,
+            LocalDate weekStartDate, Integer calculationWeeks) {
         ShiftAssignmentDto dto = new ShiftAssignmentDto();
         dto.setWorkerId(workerId);
         dto.setMachineId(machineId);
@@ -145,15 +147,15 @@ public class ShiftAssignmentService {
         dto.setPeriodStartDate(weekStartDate);
         dto.setPeriodEndDate(weekStartDate.plusDays(6)); // Saturday to Friday
         dto.setAssignmentType(1); // Weekly type
-        
+
         return createFlexibleAssignment(dto);
     }
 
     /**
      * Create custom range assignment
      */
-    public WorkerShiftAssignment createCustomRangeAssignment(Long workerId, Long machineId, Long shiftId, 
-                                                           LocalDate startDate, LocalDate endDate, Integer calculationWeeks) {
+    public WorkerShiftAssignment createCustomRangeAssignment(Long workerId, Long machineId, Long shiftId,
+            LocalDate startDate, LocalDate endDate, Integer calculationWeeks) {
         ShiftAssignmentDto dto = new ShiftAssignmentDto();
         dto.setWorkerId(workerId);
         dto.setMachineId(machineId);
@@ -161,7 +163,7 @@ public class ShiftAssignmentService {
         dto.setPeriodStartDate(startDate);
         dto.setPeriodEndDate(endDate);
         dto.setAssignmentType(2); // Custom range type
-        
+
         return createFlexibleAssignment(dto);
     }
 
@@ -171,10 +173,22 @@ public class ShiftAssignmentService {
     public List<ShiftAssignmentDto> getWorkerAssignments(Long workerId, LocalDate startDate, LocalDate endDate) {
         List<WorkerShiftAssignment> assignments = assignmentRepository.findByWorkerIdAndIsActive(workerId, true)
                 .stream()
-                .filter(assignment -> !(endDate.isBefore(assignment.getPeriodStartDate()) || 
-                                      startDate.isAfter(assignment.getPeriodEndDate())))
+                .filter(assignment -> !(endDate.isBefore(assignment.getPeriodStartDate()) ||
+                        startDate.isAfter(assignment.getPeriodEndDate())))
                 .collect(Collectors.toList());
-        
+
+        return assignments.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<ShiftAssignmentDto> getAllWorkerAssignments(LocalDate startDate, LocalDate endDate) {
+        List<WorkerShiftAssignment> assignments = assignmentRepository.findByIsActive(true)
+                .stream()
+                .filter(assignment -> !(endDate.isBefore(assignment.getPeriodStartDate()) ||
+                        startDate.isAfter(assignment.getPeriodEndDate())))
+                .collect(Collectors.toList());
+
         return assignments.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
