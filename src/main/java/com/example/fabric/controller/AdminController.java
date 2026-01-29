@@ -50,7 +50,7 @@ public class AdminController {
                         "Access denied. Only admins can register new users.");
             }
 
-            Optional<User> existingUser = userRepository.findByUsername(registerRequest.getUsername());
+            Optional<User> existingUser = userRepository.findByUsername(registerRequest.username());
 
             if (existingUser.isPresent()) {
                 return ResponseUtil.createErrorResponse(HttpStatus.BAD_REQUEST.value(),
@@ -58,11 +58,11 @@ public class AdminController {
             }
 
             User user = new User();
-            user.setUsername(registerRequest.getUsername());
-            user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-            user.setMobileNo(registerRequest.getMobile());
-            user.setRoleId(registerRequest.getRoleId() != null ? registerRequest.getRoleId() : 2); // Default to user
-                                                                                                   // role
+            user.setUsername(registerRequest.username());
+            user.setPassword(passwordEncoder.encode(registerRequest.password()));
+            user.setMobileNo(registerRequest.mobile());
+            user.setRoleId(registerRequest.roleId() != null ? registerRequest.roleId() : 2); // Default to user
+                                                                                             // role
 
             userRepository.save(user);
 

@@ -29,7 +29,7 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<?>> login(@RequestBody LoginRequest loginRequest) {
-        Optional<User> optionalUser = userRepository.findByUsername(loginRequest.getUsername());
+        Optional<User> optionalUser = userRepository.findByUsername(loginRequest.username());
         if (optionalUser.isEmpty()) {
             return ResponseUtil.createErrorResponse(HttpStatus.NOT_FOUND.value(), "User not found");
         }

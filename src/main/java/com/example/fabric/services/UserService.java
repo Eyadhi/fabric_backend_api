@@ -25,9 +25,9 @@ public class UserService {
 
     public User createUser(RegisterDto dto, String defaultPassword) {
         User newUser = new User();
-        newUser.setUsername(dto.getUsername());
-        newUser.setPassword(passwordEncoder.encode(dto.getPassword()));
-        newUser.setMobileNo(dto.getMobile());
+        newUser.setUsername(dto.username());
+        newUser.setPassword(passwordEncoder.encode(dto.password()));
+        newUser.setMobileNo(dto.mobile());
         userRepository.save(newUser);
 
         return newUser;

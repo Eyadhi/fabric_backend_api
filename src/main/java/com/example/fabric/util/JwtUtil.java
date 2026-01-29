@@ -1,21 +1,41 @@
 package com.example.fabric.util;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import java.security.Key;
+import java.nio.charset.StandardCharsets;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private static final String SECRET_KEY = "asdgfhgjhuytyrtrarszhfjjhgfsszdxhfjaszdtxfhycgjnggdfgcgvnh";
+
+    private final String jwtSecret;
+    private final long jwtExpirationMs;
+
+    public JwtUtil(@Value("${jwt.secret}") String jwtSecret,
+            @Value("${jwt.expiration:86400000}") long jwtExpirationMs) {
+        this.jwtSecret = jwtSecret;
+        this.jwtExpirationMs = jwtExpirationMs;
+    }
+
+    private Key signingKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    }
 
     public String generateToken(String username, int roleId) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + jwtExpirationMs);
+
         return Jwts.builder()
                 .setSubject(username)
                 .claim("roleId", roleId)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 hour expiration
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .setIssuedAt(now)
+                .setExpiration(expiry)
+                .signWith(signingKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -31,8 +51,9 @@ public class JwtUtil {
 
     // Extract all claims from the token
     private Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET_KEY)
+        return Jwts.parserBuilder()
+                .setSigningKey(signingKey())
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
@@ -56,14 +77,14 @@ public class JwtUtil {
             }
 
             Claims claims = extractAllClaims(token);
-            
+
             // Check if token is expired
             if (claims.getExpiration().before(new Date())) {
                 return new TokenValidationResult(false, "Token expired", TokenErrorType.EXPIRED);
             }
-            
+
             return new TokenValidationResult(true, "Token is valid", TokenErrorType.NONE);
-            
+
         } catch (ExpiredJwtException e) {
             return new TokenValidationResult(false, "Token expired", TokenErrorType.EXPIRED);
         } catch (MalformedJwtException e) {
@@ -100,9 +121,17 @@ public class JwtUtil {
             this.errorType = errorType;
         }
 
-        public boolean isValid() { return valid; }
-        public String getMessage() { return message; }
-        public TokenErrorType getErrorType() { return errorType; }
+        public boolean isValid() {
+            return valid;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public TokenErrorType getErrorType() {
+            return errorType;
+        }
     }
 
     // Token error types

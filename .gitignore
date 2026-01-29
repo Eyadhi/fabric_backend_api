@@ -33,3 +33,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Secrets ###
+# Local environment files
+.env
+.env.local
