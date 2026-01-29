@@ -99,8 +99,6 @@ spring.servlet.multipart.max-request-size=10MB
 
 ### 3. Build & Run
 ```bash
-# Navigate to backend directory
-cd fabric_backend
 
 # Build the application
 mvn clean install
