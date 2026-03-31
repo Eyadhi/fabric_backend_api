@@ -20,4 +20,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-CMD ["java", "-jar", "target/fabric-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-Dspring.profiles.active=prod", "-jar", "target/fabric-0.0.1-SNAPSHOT.jar"]
