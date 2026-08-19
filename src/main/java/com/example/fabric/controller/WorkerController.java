@@ -15,11 +15,9 @@ import com.example.fabric.dto.AddWorkerDto;
 import com.example.fabric.dto.UpdateWorkerDto;
 import com.example.fabric.model.Worker;
 import com.example.fabric.projection.WorkerListView;
-import com.example.fabric.repository.WorkerRepository;
 import com.example.fabric.services.WorkerService;
 import com.example.fabric.util.ResponseUtil;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 @RequestMapping("/users")
@@ -28,65 +26,35 @@ import lombok.RequiredArgsConstructor;
 public class WorkerController {
 
     private final WorkerService workerService;
-    private final WorkerRepository workerRepository;
 
     @PostMapping("/addWorker")
-    public ResponseEntity<?> saveWoker(@RequestBody AddWorkerDto dto, HttpServletRequest httpRequest) {
-        List<Worker> existingUser = workerRepository.findByWorkerName(dto.getName());
-
-        if (existingUser != null && !existingUser.isEmpty()) {
-            return ResponseUtil.createErrorResponse(
-                    HttpStatus.BAD_REQUEST.value(),
-                    "Username is already taken");
-        }
-
-        try {
-            Worker savedWorker = workerService.createWorker(dto);
-            return new ResponseEntity<>(savedWorker, HttpStatus.CREATED);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Error adding role: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<?> saveWorker(@RequestBody AddWorkerDto dto) {
+        // Duplicate-name check moved into WorkerService — throws DuplicateResourceException if taken
+        Worker savedWorker = workerService.createWorker(dto);
+        return new ResponseEntity<>(savedWorker, HttpStatus.CREATED);
     }
 
     @GetMapping("/getWorker")
     public ResponseEntity<?> getWorker(@RequestParam(value = "id", required = false) Long id) {
-        try {
-            List<WorkerListView> workers = (id != null) ? workerService.getWorkerById(id)
-                    : workerService.getAllWorkers();
-
-            return ResponseUtil.createSuccessResponse(workers);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(
-                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "Error fetching workers: " + e.getMessage());
-        }
+        List<WorkerListView> workers = (id != null)
+                ? workerService.getWorkerById(id)
+                : workerService.getAllWorkers();
+        return ResponseUtil.createSuccessResponse(workers);
     }
 
     @PostMapping("/updateWorker")
     public ResponseEntity<?> updateWorker(@RequestBody UpdateWorkerDto dto) {
-        try {
-            Worker updatedWorker = workerService.updateWorker(dto);
-            return ResponseUtil.createSuccessResponse(updatedWorker);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(
-                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "Error updating worker: " + e.getMessage());
-        }
+        Worker updatedWorker = workerService.updateWorker(dto);
+        return ResponseUtil.createSuccessResponse(updatedWorker);
     }
 
     @GetMapping("/getWorkerAnalytics")
-    public ResponseEntity<?> getWorkerAnalytics(@RequestParam Long workerId,
+    public ResponseEntity<?> getWorkerAnalytics(
+            @RequestParam Long workerId,
             @RequestParam String period,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
-        try {
-            Object analytics = workerService.getWorkerAnalytics(workerId, period, startDate, endDate);
-            return ResponseUtil.createSuccessResponse(analytics);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(
-                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "Error fetching worker analytics: " + e.getMessage());
-        }
+        Object analytics = workerService.getWorkerAnalytics(workerId, period, startDate, endDate);
+        return ResponseUtil.createSuccessResponse(analytics);
     }
-
 }

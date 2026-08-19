@@ -26,14 +26,8 @@ public class ExpenseController {
 
     @PostMapping("/addExpenses")
     public ResponseEntity<?> addExpense(@RequestBody AddExpenseDto dto) {
-        try {
-            expenseService.addExpense(dto);
-            return ResponseUtil.createSuccessResponse("Expense added successfully");
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(
-                    500,
-                    "Failed to add expense: " + e.getMessage());
-        }
+        expenseService.addExpense(dto);
+        return ResponseUtil.createSuccessResponse("Expense added successfully");
     }
 
     @GetMapping("/getExpenses")
@@ -42,14 +36,8 @@ public class ExpenseController {
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        try {
-            return ResponseUtil.createSuccessResponse(
-                    expenseService.getExpenses(year, month, startDate, endDate));
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(
-                    500,
-                    "Failed to fetch expenses: " + e.getMessage());
-        }
-    }
 
+        return ResponseUtil.createSuccessResponse(
+                expenseService.getExpenses(year, month, startDate, endDate));
+    }
 }

@@ -1,12 +1,6 @@
 package com.example.fabric.controller;
 
-import java.util.Optional;
-
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,8 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.fabric.dto.RegisterDto;
 import com.example.fabric.model.ApiResponse;
-import com.example.fabric.model.User;
-import com.example.fabric.repository.UserRepository;
 import com.example.fabric.services.UserService;
 import com.example.fabric.util.ResponseUtil;
 
@@ -27,64 +19,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final UserService userService;
 
     /**
-     * Register a new user
-     * 
-     * @PreAuthorize("hasRole('ADMIN')") - Only admins can register
-     * @PreAuthorize("hasAnyRole('ADMIN', 'USER')") - Both admin and user can
-     * register
-     * @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'USER')") - Multiple roles
+     * Register a new user — admin only.
+     * Access control is enforced entirely by @PreAuthorize; no manual isAdmin() check needed.
+     * Duplicate-username check is done inside UserService — throws DuplicateResourceException.
      */
-    @PreAuthorize("hasRole('ADMIN')") // Only ADMIN
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<?>> register(@RequestBody RegisterDto registerRequest) {
-        try {
-            // Check if user is admin
-            if (!isAdmin()) {
-                return ResponseUtil.createErrorResponse(
-                        HttpStatus.FORBIDDEN.value(),
-                        "Access denied. Only admins can register new users.");
-            }
-
-            Optional<User> existingUser = userRepository.findByUsername(registerRequest.username());
-
-            if (existingUser.isPresent()) {
-                return ResponseUtil.createErrorResponse(HttpStatus.BAD_REQUEST.value(),
-                        "Username is already taken");
-            }
-
-            User user = new User();
-            user.setUsername(registerRequest.username());
-            user.setPassword(passwordEncoder.encode(registerRequest.password()));
-            user.setMobileNo(registerRequest.mobile());
-            user.setRoleId(registerRequest.roleId() != null ? registerRequest.roleId() : 2); // Default to user
-                                                                                             // role
-
-            userRepository.save(user);
-
-            return ResponseUtil.createSuccessResponse("User registered successfully");
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(
-                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "Error registering user: " + e.getMessage());
-        }
-    }
-
-    private boolean isAdmin() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null && authentication.getName() != null) {
-                String username = authentication.getName();
-                User user = userService.findByUsername(username);
-                return user != null && user.getRoleId() == 1; // 1 = admin
-            }
-        } catch (Exception e) {
-            // Log error but don't expose details
-        }
-        return false;
+        userService.register(registerRequest);
+        return ResponseUtil.createSuccessResponse("User registered successfully");
     }
 }

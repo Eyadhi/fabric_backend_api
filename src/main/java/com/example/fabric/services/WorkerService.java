@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 
 import com.example.fabric.dto.AddWorkerDto;
 import com.example.fabric.dto.UpdateWorkerDto;
+import com.example.fabric.exceptions.DuplicateResourceException;
+import com.example.fabric.exceptions.ResourceNotFoundException;
 import com.example.fabric.model.Worker;
 import com.example.fabric.projection.WorkerListView;
 import com.example.fabric.repository.WorkerRepository;
@@ -19,14 +21,16 @@ public class WorkerService {
     private final MeterService meterService;
 
     public Worker createWorker(AddWorkerDto dto) {
+        // Ownership of the duplicate-name check belongs here, not in the controller
+        List<Worker> existing = workerRepository.findByWorkerName(dto.getName());
+        if (existing != null && !existing.isEmpty()) {
+            throw new DuplicateResourceException("Worker name is already taken: " + dto.getName());
+        }
 
         Worker newWorker = new Worker();
         newWorker.setWorkerName(dto.getName());
         newWorker.setMobile(dto.getMobile());
-
-        Worker savedWorker = workerRepository.save(newWorker);
-        return savedWorker;
-
+        return workerRepository.save(newWorker);
     }
 
     public List<WorkerListView> getAllWorkers() {
@@ -39,13 +43,13 @@ public class WorkerService {
 
     public Worker updateWorker(UpdateWorkerDto dto) {
         Worker worker = workerRepository.findById(dto.getId())
-                .orElseThrow(() -> new RuntimeException("Worker not found with id: " + dto.getId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Worker", dto.getId()));
 
         // Check if worker code is being changed and if it's unique
         if (dto.getWorkerCode() != null && !dto.getWorkerCode().equals(worker.getWorkerCode())) {
             Worker existingWorkerWithCode = workerRepository.findByWorkerCode(dto.getWorkerCode());
             if (existingWorkerWithCode != null && !existingWorkerWithCode.getId().equals(dto.getId())) {
-                throw new RuntimeException("Worker code already exists: " + dto.getWorkerCode());
+                throw new DuplicateResourceException("Worker code already exists: " + dto.getWorkerCode());
             }
             worker.setWorkerCode(dto.getWorkerCode());
         }
