@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.example.fabric.exceptions.DuplicateResourceException;
-import com.example.fabric.exceptions.ResourceNotFoundException;
 import com.example.fabric.model.Machine;
 import com.example.fabric.projection.MachineListView;
 import com.example.fabric.repository.MachineRepository;
