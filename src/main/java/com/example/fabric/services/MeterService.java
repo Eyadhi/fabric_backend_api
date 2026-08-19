@@ -11,22 +11,23 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import com.example.fabric.dto.MeterRequest;
+import com.example.fabric.exceptions.BusinessException;
+import com.example.fabric.exceptions.ResourceNotFoundException;
 import com.example.fabric.model.Machine;
 import com.example.fabric.model.Meter;
+import com.example.fabric.model.Product;
+import com.example.fabric.model.ProductMachine;
 import com.example.fabric.model.Worker;
 import com.example.fabric.model.WorkerShiftAssignment;
 import com.example.fabric.repository.MachineRepository;
 import com.example.fabric.repository.MeterRepository;
-import com.example.fabric.repository.WorkerRepository;
+import com.example.fabric.repository.ProductMachineRepository;
+import com.example.fabric.repository.ProductRepository;
 import com.example.fabric.repository.ShiftAssignmentRepository;
+import com.example.fabric.repository.WorkerRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
-import com.example.fabric.model.Product;
-import com.example.fabric.model.ProductMachine;
-import com.example.fabric.repository.ProductRepository;
-import com.example.fabric.repository.ProductMachineRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -43,33 +44,29 @@ public class MeterService {
     public Meter saveMeterProduction(MeterRequest request) {
 
         Worker worker = workerRepository.findById(request.getWorkerId())
-                .orElseThrow(() -> new RuntimeException("Worker not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Worker", request.getWorkerId()));
 
         Machine machine = machineRepository.findById(request.getMachineId())
-                .orElseThrow(() -> new RuntimeException("Machine not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Machine", request.getMachineId()));
 
         Product product;
         if (request.getProductId() != null) {
-            // Product ID provided explicitly - validate it exists and is running on this machine
             product = productRepository.findById(request.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
-            
-            // Validate that the product is running on this machine
+                    .orElseThrow(() -> new ResourceNotFoundException("Product", request.getProductId()));
+
             ProductMachine productMachine = productMachineRepository.findByProductIdAndMachineIdAndIsComplete(
-                request.getProductId(), request.getMachineId(), 1);
-            
+                    request.getProductId(), request.getMachineId(), 1);
             if (productMachine == null) {
-                throw new RuntimeException("Product " + request.getProductId() + " is not currently running on machine " + request.getMachineId());
+                throw new BusinessException("Product " + request.getProductId()
+                        + " is not currently running on machine " + request.getMachineId());
             }
         } else {
-            // Get the running product for this machine
-            ProductMachine runningProductMachine = productMachineRepository.findByMachineIdAndIsComplete(
-                request.getMachineId(), 1); // 1 = running/in progress
-            
+            ProductMachine runningProductMachine = productMachineRepository
+                    .findByMachineIdAndIsComplete(request.getMachineId(), 1);
             if (runningProductMachine == null) {
-                throw new RuntimeException("No running product found for machine " + request.getMachineId() + ". Please specify a product ID.");
+                throw new BusinessException("No running product found for machine " + request.getMachineId()
+                        + ". Please specify a productId.");
             }
-            
             product = runningProductMachine.getProduct();
         }
 

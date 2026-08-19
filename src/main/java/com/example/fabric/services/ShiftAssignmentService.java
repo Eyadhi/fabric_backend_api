@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.fabric.exceptions.BusinessException;
+import com.example.fabric.exceptions.ResourceNotFoundException;
 import com.example.fabric.dto.ShiftAssignmentDto;
 import com.example.fabric.model.Machine;
 import com.example.fabric.model.Shift;
@@ -36,13 +38,13 @@ public class ShiftAssignmentService {
     public WorkerShiftAssignment createFlexibleAssignment(ShiftAssignmentDto dto) {
         // Validate entities
         Worker worker = workerRepository.findById(dto.getWorkerId())
-                .orElseThrow(() -> new RuntimeException("Worker not found with ID: " + dto.getWorkerId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Worker", dto.getWorkerId()));
 
         Machine machine = machineRepository.findById(dto.getMachineId())
-                .orElseThrow(() -> new RuntimeException("Machine not found with ID: " + dto.getMachineId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Machine", dto.getMachineId()));
 
         Shift shift = shiftRepository.findById(dto.getShiftId())
-                .orElseThrow(() -> new RuntimeException("Shift not found with ID: " + dto.getShiftId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Shift", dto.getShiftId()));
 
         // Calculate dates based on assignment type
         LocalDate periodStart = dto.getPeriodStartDate();
@@ -57,7 +59,8 @@ public class ShiftAssignmentService {
 
         // Check for overlapping assignments
         if (hasOverlappingAssignment(dto.getWorkerId(), dto.getMachineId(), periodStart, periodEnd)) {
-            throw new RuntimeException("Worker already has an assignment for this machine in the specified period");
+            throw new BusinessException(
+                    "Worker already has an assignment for this machine in the specified period");
         }
 
         // Create assignment

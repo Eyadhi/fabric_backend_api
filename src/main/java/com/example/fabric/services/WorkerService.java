@@ -21,7 +21,6 @@ public class WorkerService {
     private final MeterService meterService;
 
     public Worker createWorker(AddWorkerDto dto) {
-        // Ownership of the duplicate-name check belongs here, not in the controller
         List<Worker> existing = workerRepository.findByWorkerName(dto.getName());
         if (existing != null && !existing.isEmpty()) {
             throw new DuplicateResourceException("Worker name is already taken: " + dto.getName());
@@ -68,37 +67,30 @@ public class WorkerService {
     public Object getWorkerAnalytics(Long workerId, String period, String startDate, String endDate) {
         // Validate worker exists
         Worker worker = workerRepository.findById(workerId)
-                .orElseThrow(() -> new RuntimeException("Worker not found with id: " + workerId));
+                .orElseThrow(() -> new ResourceNotFoundException("Worker", workerId));
 
         java.time.LocalDate start = null;
         java.time.LocalDate end = null;
 
-        // Calculate date range based on period
         java.time.LocalDate now = java.time.LocalDate.now();
 
         switch (period.toLowerCase()) {
             case "weekly":
-                // Use provided dates if available (for week navigation), otherwise calculate
-                // current week
                 if (startDate != null && endDate != null) {
                     start = java.time.LocalDate.parse(startDate);
                     end = java.time.LocalDate.parse(endDate);
                 } else {
-                    // Calculate Saturday to Friday week
                     java.time.DayOfWeek currentDay = now.getDayOfWeek();
-                    int daysFromSaturday = (currentDay.getValue() + 1) % 7; // Saturday = 0, Sunday = 1, etc.
-                    start = now.minusDays(daysFromSaturday).minusWeeks(0); // Current week's Saturday
-                    end = start.plusDays(6); // Friday of the same week
+                    int daysFromSaturday = (currentDay.getValue() + 1) % 7;
+                    start = now.minusDays(daysFromSaturday);
+                    end = start.plusDays(6);
                 }
                 break;
             case "monthly":
-                // For monthly, we'll use the provided startDate and endDate which will contain
-                // month/year info
                 if (startDate != null && endDate != null) {
                     start = java.time.LocalDate.parse(startDate);
                     end = java.time.LocalDate.parse(endDate);
                 } else {
-                    // Default to current month if no specific month/year provided
                     start = now.withDayOfMonth(1);
                     end = now.withDayOfMonth(now.lengthOfMonth());
                 }
@@ -112,11 +104,13 @@ public class WorkerService {
                     start = java.time.LocalDate.parse(startDate);
                     end = java.time.LocalDate.parse(endDate);
                 } else {
-                    throw new RuntimeException("Start date and end date are required for custom period");
+                    throw new com.example.fabric.exceptions.BadRequestException(
+                            "startDate and endDate are required for custom period");
                 }
                 break;
             default:
-                throw new RuntimeException("Invalid period. Use: weekly, monthly, yearly, or custom");
+                throw new com.example.fabric.exceptions.BadRequestException(
+                        "Invalid period '" + period + "'. Use: weekly, monthly, yearly, or custom");
         }
 
         // Get analytics data using MeterService with both start and end dates

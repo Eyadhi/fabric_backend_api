@@ -71,8 +71,6 @@ public class ProductController {
 
     @PostMapping("/addProductsToMultipleMachines")
     public ResponseEntity<?> saveProductToMultipleMachines(@RequestBody AddMultiMachineProductDto dto) {
-        // IllegalArgumentException  → 400  (handled by GlobalExceptionHandler)
-        // RuntimeException          → 409  (handled by GlobalExceptionHandler via DuplicateResourceException)
         List<ProductMachine> saved = productMachineService.createProductOnMultipleMachines(dto);
 
         Map<String, Object> response = new HashMap<>();
