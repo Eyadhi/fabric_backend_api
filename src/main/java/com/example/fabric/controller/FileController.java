@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.fabric.exceptions.ResourceNotFoundException;
 import com.example.fabric.model.StoredFile;
 import com.example.fabric.repository.StoredFileRepository;
 import com.example.fabric.services.FileStorageService;
@@ -31,120 +32,88 @@ public class FileController {
 
     @PostMapping("/storeBill")
     public ResponseEntity<?> storeBill(@RequestBody StoreBillRequest request) {
-        try {
-            // Decode base64 image data
-            String base64Data = request.getImageData();
-            if (base64Data.startsWith("data:image/png;base64,")) {
-                base64Data = base64Data.substring("data:image/png;base64,".length());
-            }
-            
-            byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Data);
-            
-            StoredFile storedFile = fileStorageService.storeBill(
-                imageBytes, 
-                request.getWorkerName(), 
-                request.getWeekStartDate(), 
-                request.getWorkerId()
-            );
-            
-            return ResponseUtil.createSuccessResponse(storedFile);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(500, "Failed to store bill: " + e.getMessage());
+        String base64Data = request.getImageData();
+        if (base64Data.startsWith("data:image/png;base64,")) {
+            base64Data = base64Data.substring("data:image/png;base64,".length());
         }
+
+        byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Data);
+
+        StoredFile storedFile = fileStorageService.storeBill(
+                imageBytes,
+                request.getWorkerName(),
+                request.getWeekStartDate(),
+                request.getWorkerId());
+
+        return ResponseUtil.createSuccessResponse(storedFile);
     }
 
     @GetMapping("/bills")
     public ResponseEntity<?> getAllBills() {
-        try {
-            List<StoredFile> bills = fileStorageService.getAllBills();
-            return ResponseUtil.createSuccessResponse(bills);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(500, "Failed to retrieve bills: " + e.getMessage());
-        }
+        return ResponseUtil.createSuccessResponse(fileStorageService.getAllBills());
     }
 
     @GetMapping("/bills/worker/{workerId}")
     public ResponseEntity<?> getBillsByWorker(@PathVariable Long workerId) {
-        try {
-            List<StoredFile> bills = fileStorageService.getBillsByWorker(workerId);
-            return ResponseUtil.createSuccessResponse(bills);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(500, "Failed to retrieve bills: " + e.getMessage());
-        }
+        List<StoredFile> bills = fileStorageService.getBillsByWorker(workerId);
+        return ResponseUtil.createSuccessResponse(bills);
     }
 
     @GetMapping("/bills/week/{weekStartDate}")
     public ResponseEntity<?> getBillsByWeek(@PathVariable String weekStartDate) {
-        try {
-            List<StoredFile> bills = fileStorageService.getBillsByWeek(weekStartDate);
-            return ResponseUtil.createSuccessResponse(bills);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(500, "Failed to retrieve bills: " + e.getMessage());
-        }
+        List<StoredFile> bills = fileStorageService.getBillsByWeek(weekStartDate);
+        return ResponseUtil.createSuccessResponse(bills);
     }
 
     @GetMapping("/excel-uploads")
     public ResponseEntity<?> getAllExcelUploads() {
-        try {
-            List<StoredFile> uploads = fileStorageService.getAllExcelUploads();
-            return ResponseUtil.createSuccessResponse(uploads);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(500, "Failed to retrieve Excel uploads: " + e.getMessage());
-        }
+        return ResponseUtil.createSuccessResponse(fileStorageService.getAllExcelUploads());
     }
 
     @GetMapping("/download/{fileId}")
     public ResponseEntity<Resource> downloadFile(@PathVariable Long fileId) {
-        try {
-            // Get file info from database
-            StoredFile storedFile = storedFileRepository.findById(fileId)
-                .orElseThrow(() -> new RuntimeException("File not found"));
-            
-            Resource resource = fileStorageService.loadFileAsResource(storedFile.getFileName(), storedFile.getFileType());
-            
-            String contentType = "BILL".equals(storedFile.getFileType()) ? "image/png" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            
-            return ResponseEntity.ok()
+        StoredFile storedFile = storedFileRepository.findById(fileId)
+                .orElseThrow(() -> new ResourceNotFoundException("File", fileId));
+
+        Resource resource = fileStorageService.loadFileAsResource(
+                storedFile.getFileName(), storedFile.getFileType());
+
+        String contentType = "BILL".equals(storedFile.getFileType())
+                ? "image/png"
+                : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+        return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + storedFile.getOriginalName() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + storedFile.getOriginalName() + "\"")
                 .body(resource);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
     }
 
     @DeleteMapping("/{fileId}")
     public ResponseEntity<?> deleteFile(@PathVariable Long fileId) {
-        try {
-            boolean deleted = fileStorageService.deleteFile(fileId);
-            if (deleted) {
-                return ResponseUtil.createSuccessResponse("File deleted successfully");
-            } else {
-                return ResponseUtil.createErrorResponse(404, "File not found");
-            }
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(500, "Failed to delete file: " + e.getMessage());
+        boolean deleted = fileStorageService.deleteFile(fileId);
+        if (!deleted) {
+            throw new ResourceNotFoundException("File", fileId);
         }
+        return ResponseUtil.createSuccessResponse("File deleted successfully");
     }
 
-    // DTO for storing bill request
     public static class StoreBillRequest {
         private String imageData;
         private String workerName;
         private String weekStartDate;
-        private Long workerId;
+        private Long   workerId;
 
-        // Getters and setters
-        public String getImageData() { return imageData; }
-        public void setImageData(String imageData) { this.imageData = imageData; }
-        
-        public String getWorkerName() { return workerName; }
-        public void setWorkerName(String workerName) { this.workerName = workerName; }
-        
-        public String getWeekStartDate() { return weekStartDate; }
-        public void setWeekStartDate(String weekStartDate) { this.weekStartDate = weekStartDate; }
-        
-        public Long getWorkerId() { return workerId; }
-        public void setWorkerId(Long workerId) { this.workerId = workerId; }
+        public String getImageData()       { return imageData; }
+        public void   setImageData(String v)       { this.imageData = v; }
+
+        public String getWorkerName()      { return workerName; }
+        public void   setWorkerName(String v)      { this.workerName = v; }
+
+        public String getWeekStartDate()   { return weekStartDate; }
+        public void   setWeekStartDate(String v)   { this.weekStartDate = v; }
+
+        public Long   getWorkerId()        { return workerId; }
+        public void   setWorkerId(Long v)  { this.workerId = v; }
     }
 }

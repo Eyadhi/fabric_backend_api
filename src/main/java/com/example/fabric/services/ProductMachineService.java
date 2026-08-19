@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.example.fabric.dto.AddMultiMachineProductDto;
@@ -15,6 +17,8 @@ import com.example.fabric.dto.ProductWithMachinesDto;
 import com.example.fabric.dto.UpdateProductDto;
 import com.example.fabric.dto.UpdateProductMachineCompletionDto;
 import com.example.fabric.dto.UpdateProductMachineStatusDto;
+import com.example.fabric.exceptions.BusinessException;
+import com.example.fabric.exceptions.ResourceNotFoundException;
 import com.example.fabric.model.Machine;
 import com.example.fabric.model.Product;
 import com.example.fabric.model.ProductMachine;
@@ -27,6 +31,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ProductMachineService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductMachineService.class);
 
     private final ProductRepository productRepository;
     private final ProductMachineRepository productMachineRepository;
@@ -61,7 +67,7 @@ public class ProductMachineService {
                 }
 
                 Machine machine = machineRepository.findById(machineId.longValue())
-                    .orElseThrow(() -> new RuntimeException("Machine not found with id: " + machineId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Machine", machineId.longValue()));
 
                 ProductMachine productMachine = new ProductMachine();
                 productMachine.setProduct(savedProduct);
@@ -77,9 +83,10 @@ public class ProductMachineService {
         }
 
         if (!errors.isEmpty() && createdProductMachines.isEmpty()) {
-            throw new RuntimeException("Failed to create product on any machine: " + String.join(", ", errors));
+            throw new BusinessException(
+                    "Failed to create product on any machine: " + String.join(", ", errors));
         } else if (!errors.isEmpty()) {
-            System.out.println("Partial success - some machines failed: " + String.join(", ", errors));
+            log.warn("Partial success creating product on machines — failed: {}", String.join(", ", errors));
         }
 
         // Update the overall Product status after creating ProductMachine entries
@@ -93,7 +100,7 @@ public class ProductMachineService {
     public List<ProductMachine> updateProductOnMultipleMachines(UpdateProductDto dto) {
         // This is more complex - we need to update the product and manage machine assignments
         Product product = productRepository.findById(dto.getId())
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + dto.getId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Product", dto.getId()));
 
         // Update product details
         if (dto.getProductCode() != null) {
@@ -140,7 +147,7 @@ public class ProductMachineService {
                 } else {
                     // Create new ProductMachine
                     Machine machine = machineRepository.findById(machineId.longValue())
-                        .orElseThrow(() -> new RuntimeException("Machine not found with id: " + machineId));
+                        .orElseThrow(() -> new ResourceNotFoundException("Machine", machineId.longValue()));
 
                     ProductMachine newPM = new ProductMachine();
                     newPM.setProduct(product);
@@ -209,8 +216,7 @@ public class ProductMachineService {
                     .orElse(null);
             }
             
-            if (productMachine != null) {
-                productMachine.setIsComplete(dto.getIsComplete());
+            if (productMachine != null) {                productMachine.setIsComplete(dto.getIsComplete());
                 
                 if (dto.getEndDate() != null) {
                     productMachine.setEndDate(dto.getEndDate());

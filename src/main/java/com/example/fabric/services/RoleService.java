@@ -1,6 +1,7 @@
 package com.example.fabric.services;
 
 import com.example.fabric.dto.AddRoleDto;
+import com.example.fabric.exceptions.DuplicateResourceException;
 import com.example.fabric.model.Role;
 import com.example.fabric.repository.RoleRepository;
 
@@ -19,9 +20,8 @@ public class RoleService {
 
     public Role saveRole(AddRoleDto dto) {
         Role existingRole = roleRepository.findByRoleName(dto.getRoleName());
-
         if (existingRole != null) {
-            throw new RuntimeException("Role already exists: " + dto.getRoleName());
+            throw new DuplicateResourceException("Role already exists: " + dto.getRoleName());
         }
         Role role = new Role();
         role.setRoleName(dto.getRoleName());
@@ -35,5 +35,4 @@ public class RoleService {
     public List<Role> getRoleById(Long id) {
         return roleRepository.findById(id).map(Collections::singletonList).orElse(Collections.emptyList());
     }
-
 }

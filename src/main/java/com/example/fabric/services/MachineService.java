@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.example.fabric.exceptions.DuplicateResourceException;
 import com.example.fabric.model.Machine;
 import com.example.fabric.projection.MachineListView;
 import com.example.fabric.repository.MachineRepository;
@@ -17,9 +18,8 @@ public class MachineService {
 
     public Machine saveMachine(Machine machine) {
         Machine existingMachine = machineRepository.findByMachine(machine.getMachine());
-
         if (existingMachine != null) {
-            throw new RuntimeException("Machine already exists: " + machine.getMachine());
+            throw new DuplicateResourceException("Machine already exists: " + machine.getMachine());
         }
         return machineRepository.save(machine);
     }

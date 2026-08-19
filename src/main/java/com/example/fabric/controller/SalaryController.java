@@ -23,33 +23,21 @@ public class SalaryController {
 
     private final SalaryCalculationService salaryCalculationService;
 
-    /**
-     * Calculate weekly salary (Saturday to Friday)
-     */
     @PostMapping("/calculate-weekly-salary")
     public ResponseEntity<?> calculateWeeklySalary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekEndDate) {
-        try {
-            List<SalaryCalculationDto> calculations = salaryCalculationService.calculateWeeklySalary(weekEndDate);
-            return ResponseUtil.createSuccessResponse(calculations);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(500, "Error calculating weekly salary: " + e.getMessage());
-        }
+
+        List<SalaryCalculationDto> calculations = salaryCalculationService.calculateWeeklySalary(weekEndDate);
+        return ResponseUtil.createSuccessResponse(calculations);
     }
 
-    /**
-     * Calculate custom period salary
-     */
     @PostMapping("/calculate-custom-salary")
     public ResponseEntity<?> calculateCustomPeriodSalary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        try {
-            List<SalaryCalculationDto> calculations = 
-                    salaryCalculationService.calculateCustomPeriodSalary(startDate, endDate);
-            return ResponseUtil.createSuccessResponse(calculations);
-        } catch (Exception e) {
-            return ResponseUtil.createErrorResponse(500, "Error calculating custom salary: " + e.getMessage());
-        }
+
+        List<SalaryCalculationDto> calculations =
+                salaryCalculationService.calculateCustomPeriodSalary(startDate, endDate);
+        return ResponseUtil.createSuccessResponse(calculations);
     }
 }
