@@ -23,8 +23,6 @@ public class AdminController {
 
     /**
      * Register a new user — admin only.
-     * Access control is enforced entirely by @PreAuthorize; no manual isAdmin() check needed.
-     * Duplicate-username check is done inside UserService — throws DuplicateResourceException.
      */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register")

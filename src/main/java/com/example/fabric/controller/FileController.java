@@ -98,11 +98,6 @@ public class FileController {
         return ResponseUtil.createSuccessResponse("File deleted successfully");
     }
 
-    // -------------------------------------------------------------------------
-    // Inner DTO — kept here since it is only used by this controller.
-    // Could be moved to com.example.fabric.dto if reused elsewhere.
-    // -------------------------------------------------------------------------
-
     public static class StoreBillRequest {
         private String imageData;
         private String workerName;

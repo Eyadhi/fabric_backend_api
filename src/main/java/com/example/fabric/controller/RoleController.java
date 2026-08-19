@@ -31,10 +31,6 @@ public class RoleController {
         return ResponseUtil.createSuccessResponse(roles);
     }
 
-    /**
-     * @PreAuthorize replaces the manual isAdmin() check.
-     * IllegalArgumentException (duplicate role) bubbles to GlobalExceptionHandler → 409.
-     */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/roles")
     public ResponseEntity<?> saveRole(@RequestBody AddRoleDto addRoleDto) {

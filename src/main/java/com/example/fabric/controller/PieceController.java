@@ -50,7 +50,6 @@ public class PieceController {
 
     @PostMapping("/addPieces")
     public ResponseEntity<?> savePiece(@RequestBody AddPieceDto addPieceDto) {
-        // IllegalArgumentException → DuplicateResourceException (409) via GlobalExceptionHandler
         Piece savedPiece = pieceService.savePiece(addPieceDto);
         return ResponseUtil.createSuccessResponse(savedPiece);
     }

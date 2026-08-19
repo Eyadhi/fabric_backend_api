@@ -46,7 +46,6 @@ public class ShiftController {
         return ResponseUtil.createSuccessResponse(shifts);
     }
 
-    /** Kept for backward compatibility — delegates to the same service. */
     @GetMapping("/admin/shifts")
     public ResponseEntity<?> getShiftsAdmin(@RequestParam(value = "id", required = false) Long id) {
         return getAllShifts(id);

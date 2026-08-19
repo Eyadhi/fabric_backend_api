@@ -24,7 +24,6 @@ public class UserController {
     /**
      * Authenticate a user and return a JWT token.
      * ResourceNotFoundException bubbles up if user not found (→ 404).
-     * BadCredentialsException is caught by GlobalExceptionHandler (→ 401).
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<?>> login(@RequestBody LoginRequest loginRequest) {

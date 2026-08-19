@@ -29,7 +29,6 @@ public class WorkerController {
 
     @PostMapping("/addWorker")
     public ResponseEntity<?> saveWorker(@RequestBody AddWorkerDto dto) {
-        // Duplicate-name check moved into WorkerService — throws DuplicateResourceException if taken
         Worker savedWorker = workerService.createWorker(dto);
         return new ResponseEntity<>(savedWorker, HttpStatus.CREATED);
     }
