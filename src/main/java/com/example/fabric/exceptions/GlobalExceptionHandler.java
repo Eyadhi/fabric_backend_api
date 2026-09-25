@@ -18,13 +18,6 @@ import com.example.fabric.util.ResponseUtil;
 
 /**
  * Centralized exception handler for all controllers.
- *
- * Before: every controller method had its own try/catch block returning
- *         inconsistent error shapes.
- *
- * After:  controllers contain zero try/catch — they just call the service
- *         and return the result. Any exception bubbles up here and gets a
- *         consistent ApiResponse shape with the right HTTP status.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
